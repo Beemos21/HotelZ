@@ -24,6 +24,7 @@ urlpatterns = [
     path('api/authentication/', include('apiauthentication.urls'), name='apiauthentication'),
     path('api/reviews/', include('apireviews.urls'), name='apireviews'),
     path('api/branches/', include('apibranches.urls'), name='apibranches'),
+    path('api/services/', include('apiservices.urls'), name='apiservices'),
     path('reportBooking/', include('reportBooking.urls'), name='reportBooking'),
     path('booking/', include('booking.urls'), name='booking'),
     path('roomManager/', include('roomManager.urls'), name='roomManager'),

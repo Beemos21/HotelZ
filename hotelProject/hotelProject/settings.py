@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'apiauthentication',
     'apireviews',
     'apibranches',
+    'apiservices',
     'reportBooking',
     'currencyapp',
 ]
