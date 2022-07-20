@@ -4,6 +4,7 @@ from djmoney.models.fields import MoneyField
 from django.contrib.auth.models import User
 from django.contrib import admin
 from currencyapp.models import Currency
+
 TYPE = (
     ('A', 'Air Conditioned'),
     ('NA', 'Non Air Conditioned')
@@ -16,9 +17,6 @@ def room_images_upload_path(instance, file_name):
 
 def room_display_images_upload_path(instance, file_name):
     return f"room-display/{file_name}"
-
-
-
 
 
 class City(models.Model):
@@ -87,8 +85,8 @@ class Service(models.Model):
     name = models.CharField(max_length=50)
     name_ar = models.CharField(max_length=50)
     price = models.DecimalField(max_digits=10, decimal_places=3)
-    currency = models.ForeignKey(Currency,  on_delete=models.CASCADE,blank=True,
-        null=True)
+    currency = models.ForeignKey(Currency, on_delete=models.CASCADE, blank=True,
+                                 null=True)
     description = models.TextField(max_length=250)
     created_at = models.DateTimeField(default=datetime.datetime.now, blank=True)
     updated_at = models.DateTimeField(default=datetime.datetime.now, blank=True)
@@ -101,17 +99,17 @@ class RoomType(models.Model):
     room_type = (('Single room', 'Single room'), ('Twin room', 'Twin room'), ('Double room', 'Double room'),
                  ('Triple room', 'Triple room'), ('Quad room', 'Quad room'),
                  ('Double-Double room', 'Double-Double room'),
-                 ('Queen room', 'Queen room'),  ('King room', 'Suite'), ('King room', 'Suite'),
+                 ('Queen room', 'Queen room'), ('King room', 'Suite'), ('King room', 'Suite'),
                  ('Presidential suite', 'Presidential suite'), ('Studio', 'Studio'),
                  ('Connecting rooms', 'Connecting rooms'), ('Junior Suite', 'Junior Suite'))
     type_name = models.CharField(max_length=20, choices=room_type, default='Twin room')
     room_type_ar = (('غرفه مفرده', 'غرفه مفرده'), ('غرفة توأم', 'غرفة توأم'), ('غرفة مزدوجة ', 'غرفة مزدوجة '),
-                 ('غرفه ثلاثيه', 'غرفه ثلاثيه'), ('غرفه رباعيه', 'غرفه رباعيه'),
-                 ('مزدوج مزدوجة ثنائية', 'مزدوج مزدوجة ثنائية'),
-                 ('غرفة الملكة', 'غرفة الملكة'), ('غرفة الملك', 'غرفة الملك'), ('جناح', 'جناح'),
-                 ('جناح الرئيس | الجناح الرئاسي', 'جناح الرئيس | الجناح الرئاسي'),
+                    ('غرفه ثلاثيه', 'غرفه ثلاثيه'), ('غرفه رباعيه', 'غرفه رباعيه'),
+                    ('مزدوج مزدوجة ثنائية', 'مزدوج مزدوجة ثنائية'),
+                    ('غرفة الملكة', 'غرفة الملكة'), ('غرفة الملك', 'غرفة الملك'), ('جناح', 'جناح'),
+                    ('جناح الرئيس | الجناح الرئاسي', 'جناح الرئيس | الجناح الرئاسي'),
                     ('الاستوديو', 'الاستوديو'),
-                 ('الغرف المتصلة', 'الغرف المتصلة'),('جناح صغير' ,'جناح صغير'))
+                    ('الغرف المتصلة', 'الغرف المتصلة'), ('جناح صغير', 'جناح صغير'))
     type_name_ar = models.CharField(max_length=30, choices=room_type_ar, default='Twin room')
     area = models.IntegerField(default=10)
     Bed_ = (('1 double bed', '1 double bed'),
@@ -122,17 +120,17 @@ class RoomType(models.Model):
             )
     bedType = models.CharField(max_length=23, choices=Bed_, default='1 double bed')
     Bed_ar = (('سرير لفردين', 'سرير لفردين'),
-            ('1 سرير لفردين و 1 سرير أريكة', '1 سرير لفردين 1 سرير أريكة'),
-            ('2 سرير لفرد واحد', '2 سرير لفرد واحد'),
-            ('1 سرير أريكة 1 سرير لفرد واحد', '1 سرير أريكة 1 سرير لفرد واحد'),
-            (' سرير كبير لفردين','سرير كبير لفردين'))
+              ('1 سرير لفردين و 1 سرير أريكة', '1 سرير لفردين 1 سرير أريكة'),
+              ('2 سرير لفرد واحد', '2 سرير لفرد واحد'),
+              ('1 سرير أريكة 1 سرير لفرد واحد', '1 سرير أريكة 1 سرير لفرد واحد'),
+              (' سرير كبير لفردين', 'سرير كبير لفردين'))
 
     bedType_ar = models.CharField(max_length=30, choices=Bed_ar, default='سرير لفردين ')
     capacity = models.IntegerField(default=2)
     cover_image = models.ImageField(upload_to=room_images_upload_path)
     price_per_day = models.DecimalField(max_digits=10, decimal_places=3)
-    currency = models.ForeignKey(Currency,on_delete= models.PROTECT, default=None ,blank=True,
-        null=True)
+    currency = models.ForeignKey(Currency, on_delete=models.PROTECT, default=None, blank=True,
+                                 null=True)
     description = models.CharField(max_length=50)
     special_features = models.CharField(max_length=50)
     description_ar = models.CharField(max_length=50)
@@ -561,3 +559,6 @@ class Availability_Room(models.Model):
     d364 = models.CharField(max_length=2, default="0")
     d365 = models.CharField(max_length=2, default="0")
     d366 = models.CharField(max_length=2, default="0")
+
+    def __str__(self):
+        return self.room.title

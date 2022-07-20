@@ -1,0 +1,122 @@
+{% extends "admin/base_site.html" %}
+{%block title %} Create New Booking {%endblock%}
+
+{% block breadcrumb %}
+<li class=""><a href="{% url 'create-pdf' %}">Booking</a></li>
+<li>{{booking.booking_status}}</li>
+{%endblock%}
+<div class="row">
+{% block content %}
+<form method="POST">
+    {% csrf_token %}
+
+    <label>roomtype</label>
+	<select name="roomtype" >
+		<option value="0">All</option>
+		{%for type in groomtype%}
+			<option value="{{type.id}}">{{type.type_name}}</option>
+		{%endfor%}
+	</select>
+    <label>checkin</label><input type="date" name="checkin" id="id_checkin"  onblur="checkdate()" size="10" required>
+    <label>checkout</label><input type="date" name="checkout" id="id_checkout" size="10" required>
+	<label>nb adult</label><input type="number" name="nbadult" id="id_nbadult" size="10" value="0" max="3" min="0">
+	<label>nb children</label><input type="number" name="nbchildren" id="id_children" size="10" value="0" max="3" min="0" >
+
+
+    <input type="submit" name="form1" value="Search"/>
+</form>
+</div>
+<section class="content">
+<div class="row">
+
+    {%for room in rooms%}
+        <div class="col-lg-3 col-xs-6">
+					      	<div class="small-box bg-green">
+						      	<div class="inner">
+									<h3>{{ room.title }}</h3>
+
+						      		<p>{{ room.roomtype }}</p>
+                                    <p>{{ room.price_per_day }}	</p>
+						      	</div>
+						      	<div class="icon"><i class="fa fa-windows" aria-hidden="true"></i></div>
+						      	<div class="box-footer">
+						      		<a href="" class="btn btn-default pull-right">Detail</a>
+									<form method="POST">
+										 {% csrf_token %}
+									<input type="text" name="roomid" value="{{ room.id }}" >
+<!--										<input type="text" name="checkin" value="{{ room.checkin }}" >-->
+<!--										<input type="text" name="checkout" value="{{ room.checkout }}" >-->
+<!--										<input type="number" name="nbadult" value="{{ room.nbadult }}" >-->
+<!--										<input type="number"  name="nbchildren" value="{{ room.nbchildren }}" >-->
+									<input type="submit" class="btn btn-success pull-left" name="form2"  value="book" />
+										</form>
+						      	</div>
+					      	</div>
+		</div>
+    {%endfor%}
+
+</div>
+</section>
+<script>
+var today = new Date();
+var dd = today.getDate();
+var mm = today.getMonth() + 1; //January is 0!
+var yyyy = today.getFullYear();
+
+var tomorrow = new Date();
+// add a day
+tomorrow.setDate(today.getDate() + 1);
+
+if (dd < 10) {
+   dd = '0' + dd;
+}
+
+if (mm < 10) {
+   mm = '0' + mm;
+}
+
+today = yyyy + '-' + mm + '-' + dd;
+document.getElementById("id_checkin").setAttribute("min", today);
+
+var dd1 = tomorrow.getDate();
+var mm1 = tomorrow.getMonth() + 1; //January is 0!
+var yyyy1 = tomorrow.getFullYear();
+if (dd1 < 10) {
+   dd1 = '0' + dd1;
+}
+
+if (mm1 < 10) {
+   mm1 = '0' + mm1;
+}
+
+tomorrow = yyyy1 + '-' + mm1 + '-' + dd1;
+console.log(tomorrow);
+document.getElementById("id_checkout").setAttribute("min", tomorrow);
+
+function checkdate()
+{
+var fromdate = new Date();
+	fromdate = document.getElementById("id_checkin").value;
+
+
+
+var tomorrow = new Date(fromdate);
+tomorrow.setDate(tomorrow.getDate() + 1);
+
+
+var dd1 = tomorrow.getDate();
+var mm1 = tomorrow.getMonth() + 1; //January is 0!
+var yyyy1 = tomorrow.getFullYear();
+if (dd1 < 10) {
+   dd1 = '0' + dd1;
+}
+
+if (mm1 < 10) {
+   mm1 = '0' + mm1;
+}
+
+tomorrow = yyyy1 + '-' + mm1 + '-' + dd1;
+	document.getElementById("id_checkout").setAttribute("min", tomorrow);
+}
+</script>
+{%endblock%}

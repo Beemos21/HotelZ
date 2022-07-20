@@ -8,7 +8,7 @@ from bidi.algorithm import get_display
 from .models import Reservation
 
 from roomManager.models import *
-from django.shortcuts import render,redirect
+from django.shortcuts import render, redirect
 from django.http import JsonResponse
 import json
 from django.core import serializers
@@ -17,18 +17,15 @@ from datetime import datetime
 from django.db import connection
 from datetime import date
 
-
 from wkhtmltopdf.views import PDFTemplateView
 
 
 def customers(request):
-
     # data = json.loads(request.body)
     cities = Reservation.objects.all()
 
     qs_json = serializers.serialize('json', cities)
     return JsonResponse(qs_json, safe=False)
-
 
 
 class MyPDF(PDFTemplateView):
@@ -66,28 +63,27 @@ def newbooking(request):
     #
     #     return render(request, "search_booking.html", {'parametre': parametre})
     print(booking[0])
-    returnvalue={
+    returnvalue = {
         'booking': booking,
         'type': booking[0],
     }
-    return render(request,"new_booking.html",returnvalue)
+    return render(request, "new_booking.html", returnvalue)
 
-def searchbooking(request,city,roomtype,checkin,checkout):
 
-    parametre ={
+def searchbooking(request, city, roomtype, checkin, checkout):
+    parametre = {
         'city': city,
         'roomtype': roomtype,
         'checkin': checkin,
         'checkout': checkout,
     }
-    return render(request,"search_booking.html",parametre)
+    return render(request, "search_booking.html", parametre)
 
 
 def searchforroom(request):
-    roomslist=[]
-    rooms={}
+    roomslist = []
+    rooms = {}
     groomtype = RoomType.objects.all()
-
 
     rooms = {
         'rooms': roomslist,
@@ -113,16 +109,12 @@ def searchforroom(request):
         BOOKING_type = request.POST['BOOKING_type']
         BOOKING_STATUS = request.POST['BOOKING_STATUS']
 
-
-
-
         roomdata = {
             'roomid': roomid,
             'checkin': checkin,
             'checkout': checkout,
 
         }
-
 
         return render(request, "book_room/success.html", roomdata)
     elif 'form2' in request.POST:
@@ -152,19 +144,18 @@ def searchforroom(request):
         delta = checkoutdate - checkindate
         print('delta')
         print(delta)
-        nbdays=delta.days
+        nbdays = delta.days
         print(nbdays)
         roomdata = {
             'roomid': roomid,
             'title': roomtitle[0]['title'],
             'checkin': checkin,
             'checkout': checkout,
-            'total_cost':roomtype[0]['price_per_day']*nbdays
+            'total_cost': roomtype[0]['price_per_day'] * nbdays
 
         }
         print(roomdata)
         return render(request, "book_room/reserveroom.html", roomdata)
-
     elif request.method == "POST":
         # if request.POST['city'] != '':
         #     city = int(request.POST['city'])
@@ -176,12 +167,10 @@ def searchforroom(request):
         else:
             roomtype = 0
 
-
         checkin = request.POST['checkin']
         checkout = request.POST['checkout']
         nbadult = request.POST['nbadult']
         nbchildren = request.POST['nbchildren']
-
 
         getroom = list(Room.objects.all().filter(id=1).all().values())
         roomtype = list(RoomType.objects.all().filter(id=getroom[0]['rtype_id']).all().values())
@@ -196,8 +185,8 @@ def searchforroom(request):
         #     'nbadult': nbadult,
         #     'nbchildren': nbchildren,
         # }
-        nbrooms=1
-        hotelid=0
+        nbrooms = 1
+        hotelid = 0
         current_user = request.user
         myhotel = HotelUser.objects.filter(user=current_user).all().values()
         print('myhotel')
@@ -205,23 +194,23 @@ def searchforroom(request):
         # print(myhotel[0]['id'])
 
         if myhotel:
-            hotelid=0
+            hotelid = 0
         roomslist = getRoomAvailability(checkin, checkout, hotelid, nbadult, nbchildren, nbrooms)
 
         # roomslist.append(room1)
 
-        rooms={
-            'rooms' : roomslist,
-            'groomtype' : groomtype
+        rooms = {
+            'rooms': roomslist,
+            'groomtype': groomtype
         }
         return render(request, "availabilityroom.html", rooms)
     else:
         return render(request, "availabilityroom.html", rooms)
 
-
     # return render(request, "availabilityroom.html", rooms)
 
-def getwhereofAvalabilitydays( fromdate, todate):
+
+def getwhereofAvalabilitydays(fromdate, todate):
     fromdateasdate = datetime.strptime(fromdate, '%Y-%m-%d')
     fromdateasint = int(fromdateasdate.strftime('%j'))
 
@@ -259,21 +248,22 @@ def getwhereofAvalabilitydays( fromdate, todate):
 
 
 def getRoomAvailability(fromdate, todate, hotelid, nbadult, nbchildren, nbrooms):
-
-    sql1 = " SELECT roomManager_room.id,roomManager_room.title,roomManager_roomtype.capacity ,roomManager_roomtype.type_name,roomManager_roomtype.type_name_ar,roomManager_roomtype.price_per_day FROM roomManager_room  INNER JOIN roomManager_roomtype on roomManager_room.rtype_id = roomManager_roomtype.id  INNER JOIN roomManager_availability_room on roomManager_room.id = roomManager_availability_room.room_id "
+    sql1 = "SELECT roomManager_room.id,roomManager_room.title,roomManager_roomtype.capacity ," \
+           "roomManager_roomtype.type_name,roomManager_roomtype.type_name_ar,roomManager_roomtype.price_per_day FROM " \
+           "roomManager_room  INNER JOIN roomManager_roomtype on roomManager_room.rtype_id = roomManager_roomtype.id  " \
+           "INNER JOIN roomManager_availability_room on roomManager_room.id = roomManager_availability_room.room_id "
     sql = str(sql1) + " where " + getwhereofAvalabilitydays(fromdate, todate)
-
 
     if int(hotelid) > 0:
         sql = str(sql) + " And roomManager_room.hotel_id= " + str(hotelid)
 
-    capacity =  int(nbadult) + int(nbchildren)
+    capacity = int(nbadult) + int(nbchildren)
     if capacity > 0:
         sql = str(sql) + " And roomManager_roomtype.capacity>= " + str(capacity)
 
     # print(sql)
     # roomslist.append(room1)
-    roomslist=[]
+    roomslist = []
     room1 = {
         'id': '',
         'title': '',

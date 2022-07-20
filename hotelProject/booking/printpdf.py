@@ -8,11 +8,13 @@ from django import template
 from django.conf import settings
 from xhtml2pdf import pisa
 from .models import Reservation
+
 try:
-    from StringIO import StringIO ## for Python 2
+    from StringIO import StringIO  ## for Python 2
 except ImportError:
-    from io import StringIO ## for Python 3
+    from io import StringIO  ## for Python 3
 from bs4 import BeautifulSoup
+
 
 def pdf_report_create(request):
     booking = Booking.objects.all()
@@ -28,13 +30,11 @@ def pdf_report_create(request):
     }
     response = HttpResponse(content_type='application/pdf')
 
-
     # response['Content-Disposition'] = 'filename="bookings_report.pdf"'
     # response['Content-Disposition'] = 'attachement;"filename="pdffilename.pdf"'
     response['Content-Disposition'] = '"filename="pdffilename.pdf"'
     template = get_template(template_path)
     html = template.render(context)
-
 
     # return HttpResponse('We had some errors <pre>' + html + '</pre>')
 

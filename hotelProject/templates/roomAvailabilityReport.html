@@ -5,14 +5,25 @@
         <title> Room Availability Report </title>
     </head>
 
-    <body>
+    <body style="text-align:center">
 
-        <table border="5px solid black" align="center" style="width:80%" cellspacing="5px">
+<!--    <a id="saveAsPdfBtn" href="https://www.sejda.com/html-to-pdf">Save as PDF</a>-->
+<!--<script>-->
+<!--document.getElementById('saveAsPdfBtn').addEventListener('click', function(e){-->
+<!--  var pageUrl = encodeURIComponent(window.location.href);-->
+<!--  var opts = ['save-link=' + pageUrl, 'pageOrientation=auto'];-->
+<!--  window.open('https://www.sejda.com/html-to-pdf?' + opts.join('&'));-->
+<!--  e.preventDefault();-->
+<!--});-->
+<!--</script>-->
+
+
+        <table border="5px solid black" align="center" style="width:80%" cellspacing="4px">
             <thead>
             <tr style="height:100px">
 
-                <th colspan="1" align= center> <img src="hotelLogo.png" alt="logo" width="50 px" height="50px"></th>
-                <th colspan="2" align= center> Hotel Room Availability Report, from Jan, 01 2001 to Jan, 02 2001 </th>
+<!--                <th colspan="1" align= center> <img src="https://drive.google.com/uc?export=view&id=1A4oGJsCQz7FvS2rRjFGjV1kKbYgKgijm" alt="logo" width="50 px" height="50px"></th>-->
+                <th colspan="3" align= center> Hotel Room Availability Report, from {{ fromDate }} to {{ toDate }} </th>
 
             </tr>
 
@@ -24,24 +35,80 @@
             </thead>
             <tbody>
             <tr align= center>
-                <td> Classic </td>
-                <td> {{ countR }} </td>
-                <td> {{ countA }} </td>
+                <td> Single Room </td>
+                <td> {{ countReservedSR }} </td>
+                <td> {{ countAvailableSR }} </td>
+            </tr>
+            <tr align= center>
+                <td> Twin Room </td>
+                <td> {{ countReservedTR }} </td>
+                <td> {{ countAvailableTR }} </td>
+            </tr>
+            <tr align= center>
+                <td> Double Room </td>
+                <td> {{ countReservedDR }} </td>
+                <td> {{ countAvailableDR }} </td>
+            </tr>
+            <tr align= center>
+                <td> Triple Room </td>
+                <td> {{ countReservedTrR }} </td>
+                <td> {{ countAvailableTrR }} </td>
+            </tr>
+            <tr align= center>
+                <td> Quad Room </td>
+                <td> {{ countReservedQR }} </td>
+                <td> {{ countAvailableQR }} </td>
+            </tr>
+            <tr align= center>
+                <td> Double-Double Room </td>
+                <td> {{ countReservedDDR }} </td>
+                <td> {{ countAvailableDDR }} </td>
+            </tr>
+            <tr align= center>
+                <td> Queen Room </td>
+                <td> {{ countReservedQuR }} </td>
+                <td> {{ countAvailableQuR }} </td>
+            </tr>
+            <tr align= center>
+                <td> King Room </td>
+                <td> {{ countReservedS }} </td>
+                <td> {{ countAvailableS }} </td>
+            </tr>
+            <tr align= center>
+                <td> Presidential Suite </td>
+                <td> {{ countReservedPS }} </td>
+                <td> {{ countAvailablePS }} </td>
+            </tr>
+            <tr align= center>
+                <td> Studio </td>
+                <td> {{ countReservedSt }} </td>
+                <td> {{ countAvailableSt }} </td>
+            </tr>
+            <tr align= center>
+                <td> Connecting Rooms </td>
+                <td> {{ countReservedCR }} </td>
+                <td> {{ countAvailableCR }} </td>
+            </tr>
+            <tr align= center>
+                <td> Junior Suit </td>
+                <td> {{ countReservedJS }} </td>
+                <td> {{ countAvailableJS }} </td>
             </tr>
 
-            <tr align= center>
-                <td> Luxury </td>
-                <td> 10 </td>
-                <td> 10 </td>
-            </tr>
+<!--            <tr align= center>-->
+<!--                <td> Luxury </td>-->
+<!--                <td> 10 </td>-->
+<!--                <td> 10 </td>-->
+<!--            </tr>-->
 
-            <tr align= center>
-                <td> Total </td>
-                <td> 35 </td>
-                <td> 35 </td>
+            <tr align= center style="height:30px">
+                <td> <b> Total </b> </td>
+                <td> {{ totalReserved }} </td>
+                <td> {{ totalAvailable }} </td>
 
             </tr>
             </tbody>
         </table>
+<h4>press "Ctrl + P"  to make PDF </h4>
     </body>
 </html>
