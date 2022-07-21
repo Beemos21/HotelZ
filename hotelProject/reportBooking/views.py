@@ -1,410 +1,210 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.shortcuts import render
-from datetime import datetime
-from datetime import date
+from wkhtmltopdf.views import PDFTemplateView
+from .models import *
+from django.conf import settings
+from datetime import datetime, date
 from django.db import connection
-# from .serializers import AvalabilitySerializer, BranchesSerializer, RoomTypeSerializer
-from rest_framework import mixins, viewsets
+import random
+from django.http import HttpResponse, FileResponse
+from django.shortcuts import render
+from faker import Faker, Factory
+import factory
 from django_renderpdf.views import PDFView
-# from .forms import FormRoomAvailability
-
-
 # Create your views here.
+from rest_framework import viewsets
+from .models import *
+from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from templates import *
+from datetime import date, datetime
+from booking.models import RoomBooked, Reservation
+from roomManager.models import RoomType
+import datetime
+from django.db.models.functions import Now
+import io
+from reportlab.pdfgen import canvas
+from reportlab.lib.units import inch
+from reportlab.lib.pagesizes import letter
 
 
-def getWhereAvalabilitydays(fromdate, todate, availableornot):
-    fromdateasdate = datetime.strptime(fromdate, '%Y-%m-%d')
-    fromdateasint = int(fromdateasdate.strftime('%j'))
+def test_pdf(request):
+    buf = io.BytesIO()
+    c = canvas.Canvas(buf, pagesize=letter, bottomup=0)
+    textob = c.beginText()
+    textob.setTextOrigin(inch, inch)
+    textob.setFont("Helvetica", 14)
 
-    todateasdate = datetime.strptime(todate, '%Y-%m-%d')
-    todateasint = int(todateasdate.strftime('%j'))
+    books = Reservation.objects.all()
 
-    toreturnstr = ""
-    if todateasint >= fromdateasint:
-        for i in range(fromdateasint, todateasint + 1):
-            toreturnstr = toreturnstr + "roomManager_availability_room.d" + str(i) + "=" + str(availableornot)
-            if i == todateasint:
-                continue
-            toreturnstr = toreturnstr + " and "
-    else:
-        intermediate_str = str(fromdateasdate.year) + str("-12-31")
-        intermediatedate = datetime.strptime(intermediate_str, '%Y-%m-%d')
+    lines = []
+    for book in books:
+        res = {'type': book.type,
+               'booking_status': book.booking_status,
+               'customer': book.customer.First_Name,
+               'From_date': book.From_date,
+               'To_date': book.To_date,
+               }
+        lines.append(res)
 
-        intermediateasint = int(intermediatedate.strftime('%j'))
+    for line in lines:
+        textob.textLine(line)
 
-        for i in range(fromdateasint, intermediateasint + 1):
-            toreturnstr = toreturnstr + "roomManager_availability_room.d" + str(i) + "=" + str(availableornot)
-            # if i==intermediateasint :
-            #     continue
-            toreturnstr = toreturnstr + " and "
+    c.drawText(textob)
+    c.showPage()
+    c.save()
+    buf.seek(0)
 
-        # toreturnstr= toreturnstr + " and "
-
-        for i in range(1, todateasint + 1):
-            toreturnstr = toreturnstr + "roomManager_availability_room.d" + str(i) + "=" + availableornot
-            if i == todateasint:
-                continue
-            toreturnstr = toreturnstr + " and "
-    return toreturnstr
+    return FileResponse(buf, as_attachment=True, filename='t1.pdf')
 
 
-def getRoomAvailability(fromdate, todate, hotelid, availableornot, RoomTypeName):
-    sql1 = " SELECT roomManager_roomtype.id,roomManager_roomtype.type_name, roomManager_room.id " \
-           " FROM roomManager_room " \
-           " INNER JOIN roomManager_roomtype on roomManager_room.rtype_id = roomManager_roomtype.id" \
-           " INNER JOIN roomManager_availability_room on roomManager_room.id = roomManager_availability_room.room_id "
+class TodayCheckin(LoginRequiredMixin, PDFView):
+    template_name = 'reportbooking\CheckIn.html'
 
-    sql = str(sql1) + " where " + getWhereAvalabilitydays(fromdate, todate, availableornot)
+    def get_context_data(self, *args,  **kwargs):
 
-    if int(hotelid) > 0:
-        sql = str(sql) + " And roomManager_room.hotel_id= " + str(hotelid)
+        chechdate = date.today()
+        print(chechdate)
+        sql1 = "SELECT booking_RoomBooked.nb_Adults, booking_RoomBooked.nb_Children, DATE(booking_Reservation.to_date)," \
+               "booking_Reservation.type, roomManager_RoomType.type_name" \
+               "FROM booking_RoomBooked " \
+               "INNER JOIN booking_reservation on booking_RoomBooked.booking_id = booking_reservation.id " \
+               "INNER JOIN roomManager_roomtype on booking_RoomBooked.type_id = roomManager_roomtype.id " \
+               "WHERE DATE(booking_Reservation.From_date) = '" + chechdate.strftime("%Y-%m-%d") + "'"
 
-    sql = str(sql) + " And roomManager_RoomType.type_name= '" + RoomTypeName + "'"
+        print(sql1)
+        context = super().get_context_data(*args, **kwargs)
+        checkin = []
 
-    print(sql)
-    roomslist = []
-
-    with connection.cursor() as cursor:
-        cursor.execute(sql)
-        rows = cursor.fetchall()
+        with connection.cursor() as cursor:
+            cursor.execute(sql1)
+            rows = cursor.fetchall()
 
         for row in rows:
-            room1 = {
-                'roomTypeid': row[0],
-                'type_name': row[1],
-                'room_id': row[2],
-                # 'countofroom': row[2],
+            check = {
+                'type': row[4],
+                'reservation': row[3],
+                'checkout': row[2],
+                'adults': row[0],
+                'children': row[1],
+
             }
-            roomslist.append(room1)
-    # print(roomslist)
-    return roomslist
+            checkin.append(check)
+
+        context['check'] = checkin
+        return context
 
 
-# def home_view(request):
-#     context = {}
-#     context['form'] = FormRoomAvailability()
-#     return render(request, "home.html", context)
+class TodayCheckout(LoginRequiredMixin, PDFView):
+    template_name = 'reportbooking\CheckOut.html'
+
+    def get_context_data(self, *args,  **kwargs):
+
+        chechdate = date.today()
+        print(chechdate)
+
+        sql1 = "SELECT booking_RoomBooked.nb_Adults, booking_RoomBooked.nb_Children," \
+               "DATE(booking_Reservation.From_date)," \
+               "booking_Reservation.type, roomManager_RoomType.type_name, " \
+               "FROM booking_RoomBooked " \
+               "INNER JOIN booking_reservation on booking_RoomBooked.booking_id = booking_reservation.id " \
+               "INNER JOIN roomManager_roomtype on booking_RoomBooked.type_id = roomManager_roomtype.id " \
+               "WHERE DATE(booking_Reservation.To_date) = '" + chechdate.strftime("%Y-%m-%d") + "'"
+
+        print(sql1)
+        context = super().get_context_data(*args, **kwargs)
+        checkout = []
+
+        with connection.cursor() as cursor:
+            cursor.execute(sql1)
+            rows = cursor.fetchall()
+
+        for row in rows:
+            check = {
+                'type': row[4],
+                'reservation': row[3],
+                'checkin': row[2],
+                'adults': row[0],
+                'children': row[1],
+
+            }
+            checkout.append(check)
+
+        context['check'] = checkout
+        return context
 
 
-def searchForRoomAvailabilityViews(request):
-    if 'FormRoomAvailability' in request.GET:
-        # print('FormRoomAvailability')
-        print(request.POST)
+class CurrentVisitor(LoginRequiredMixin, PDFView):
+    template_name = 'reportbooking\CurrentVisitor.html'
 
-        fromDate = request.GET['from_date']
-        toDate = request.GET['to_date']
+    def get_context_data(self, *args,  **kwargs):
 
-        # roomAvailabilityReportViews(fromDate, toDate)
-        availableRoomsSR = getRoomAvailability(fromDate, toDate, 1, 0, 'Single room')
-        reservedRoomsSR = getRoomAvailability(fromDate, toDate, 1, 1, 'Single room')
-        countASR = 0
-        countRSR = 0
-        for x in availableRoomsSR:
-            countASR += 1
-        for y in reservedRoomsSR:
-            countRSR += 1
+        chechdate = date.today()
+        print(chechdate)
 
-        availableRoomsTR = getRoomAvailability(fromDate, toDate, 1, 0, 'Twin room')
-        reservedRoomsTR = getRoomAvailability(fromDate, toDate, 1, 1, 'Twin room')
-        countATR = 0
-        countRTR = 0
-        for x in availableRoomsTR:
-            countATR += 1
-        for y in reservedRoomsTR:
-            countRTR += 1
+        sql1 = "SELECT booking_Visitor.First_name, booking_Visitor.Last_Name," \
+               "booking_Visitor.nationality,booking_Visitor.Identity_card_type," \
+               "booking_Visitor.Identity_Card_number, DATE(booking_Visitor.birth_date) " \
+               "FROM booking_CheckInVisitor " \
+               "INNER JOIN booking_visitor on booking_CheckInVisitor.visitor_id = booking_visitor.id" \
+               "INNER JOIN booking_CheckIn on booking_CheckInVisitor.checkin_id = booking_CheckIn.id" \
+               "WHERE DATE(booking_CheckIn.check_out_date) >= '" + chechdate.strftime("%Y-%m-%d") + "'"
 
-        availableRoomsDR = getRoomAvailability(fromDate, toDate, 1, 0, 'Double room')
-        reservedRoomsDR = getRoomAvailability(fromDate, toDate, 1, 1, 'Double room')
-        countADR = 0
-        countRDR = 0
-        for x in availableRoomsDR:
-            countADR += 1
-        for y in reservedRoomsDR:
-            countRDR += 1
+        print(sql1)
+        context = super().get_context_data(*args, **kwargs)
+        visitor = []
 
-        availableRoomsTrR = getRoomAvailability(fromDate, toDate, 1, 0, 'Triple room')
-        reservedRoomsTrR = getRoomAvailability(fromDate, toDate, 1, 1, 'Triple room')
-        countATrR = 0
-        countRTrR = 0
-        for x in availableRoomsTrR:
-            countATrR += 1
-        for y in reservedRoomsTrR:
-            countRTrR += 1
+        with connection.cursor() as cursor:
+            cursor.execute(sql1)
+            rows = cursor.fetchall()
 
-        availableRoomsQR = getRoomAvailability(fromDate, toDate, 1, 0, 'Quad room')
-        reservedRoomsQR = getRoomAvailability(fromDate, toDate, 1, 1, 'Quad room')
-        countAQR = 0
-        countRQR = 0
-        for x in availableRoomsQR:
-            countAQR += 1
-        for y in reservedRoomsQR:
-            countRQR += 1
+        for row in rows:
+            visitor1 = {
+                'First_name': row[0],
+                'Last_Name': row[1],
+                'nationality': row[2],
+                'Identity_card_type': row[3],
+                'Identity_Card_number': row[4],
+                'birth_date': row[5],
+            }
+            visitor.append(visitor1)
 
-        availableRoomsDDR = getRoomAvailability(fromDate, toDate, 1, 0, 'Double-Double room')
-        reservedRoomsDDR = getRoomAvailability(fromDate, toDate, 1, 1, 'Double-Double room')
-        countADDR = 0
-        countRDDR = 0
-        for x in availableRoomsDDR:
-            countADDR += 1
-        for y in reservedRoomsDDR:
-            countRDDR += 1
-
-        availableRoomsQuR = getRoomAvailability(fromDate, toDate, 1, 0, 'Queen room')
-        reservedRoomsQuR = getRoomAvailability(fromDate, toDate, 1, 1, 'Queen room')
-        countAQuR = 0
-        countRQuR = 0
-        for x in availableRoomsQuR:
-            countAQuR += 1
-        for y in reservedRoomsQuR:
-            countRQuR += 1
-
-        availableRoomsS = getRoomAvailability(fromDate, toDate, 1, 0, 'Suite')
-        reservedRoomsS = getRoomAvailability(fromDate, toDate, 1, 1, 'Suite')
-        countAS = 0
-        countRS = 0
-        for x in availableRoomsS:
-            countAS += 1
-        for y in reservedRoomsS:
-            countRS += 1
-
-        availableRoomsPS = getRoomAvailability(fromDate, toDate, 1, 0, 'Suite')
-        reservedRoomsPS = getRoomAvailability(fromDate, toDate, 1, 1, 'Suite')
-        countAPS = 0
-        countRPS = 0
-        for x in availableRoomsPS:
-            countAPS += 1
-        for y in reservedRoomsPS:
-            countRPS += 1
-
-        availableRoomsSt = getRoomAvailability(fromDate, toDate, 1, 0, 'Studio')
-        reservedRoomsSt = getRoomAvailability(fromDate, toDate, 1, 1, 'Studio')
-        countASt = 0
-        countRSt = 0
-        for x in availableRoomsSt:
-            countASt += 1
-        for y in reservedRoomsSt:
-            countRSt += 1
-
-        availableRoomsCR = getRoomAvailability(fromDate, toDate, 1, 0, 'Connecting rooms')
-        reservedRoomsCR = getRoomAvailability(fromDate, toDate, 1, 1, 'Connecting rooms')
-        countACR = 0
-        countRCR = 0
-        for x in availableRoomsCR:
-            countACR += 1
-        for y in reservedRoomsCR:
-            countRCR += 1
-
-        availableRoomsJS = getRoomAvailability(fromDate, toDate, 1, 0, 'Junior Suite')
-        reservedRoomsJS = getRoomAvailability(fromDate, toDate, 1, 1, 'Junior Suite')
-        countAJS = 0
-        countRJS = 0
-        for x in availableRoomsJS:
-            countAJS += 1
-        for y in reservedRoomsJS:
-            countRJS += 1
-
-        totalAvailable = countASR + countATR + countADR + countATrR + countAQR + countADDR + countAQuR + countAS \
-                         + countAPS + countASt + countACR + countAJS  # all available roms from any type
-        totalReserved = countRSR + countRTR + countRDR + countRTrR + countRQR + countRDDR + countRQuR + countRS \
-                        + countRPS + countRSt + countRCR + countRJS
-
-        countData = {'countAvailableSR': countASR,
-                     'countReservedSR': countRSR,
-                     'countAvailableTR': countATR,
-                     'countReservedTR': countRTR,
-                     'countAvailableDR': countADR,
-                     'countReservedDR': countRDR,
-                     'countAvailableTrR': countATrR,
-                     'countReservedTrR': countRTrR,
-                     'countAvailableQR': countAQR,
-                     'countReservedQR': countRQR,
-                     'countAvailableDDR': countADDR,
-                     'countReservedDDR': countRDDR,
-                     'countAvailableQuR': countAQuR,
-                     'countReservedQuR': countRQuR,
-                     'countAvailableS': countAS,
-                     'countReservedS': countRS,
-                     'countAvailablePS': countAPS,
-                     'countReservedPS': countRPS,
-                     'countAvailableSt': countASt,
-                     'countReservedSt': countRSt,
-                     'countAvailableCR': countACR,
-                     'countReservedCR': countRCR,
-                     'countAvailableJS': countAJS,
-                     'countReservedJS': countRJS,
-
-                     'totalAvailable': totalAvailable,
-                     'totalReserved': totalReserved,
-                     'fromDate': fromDate,
-                     'toDate': toDate,
-
-                     }
-
-        return render(request, 'roomAvailabilityReport.html', countData)
-    else:
-        return render(request, "roomAvailabilityForm.html")
+        context['visitor'] = visitor
+        return context
 
 
-# def searchForRoomAvailabilityPDFViews(request):
-#     if 'FormRoomAvailability' in request.GET:
-#         fromDate = request.GET['from_date']
-#         toDate = request.GET['to_date']
-#
-#         # roomAvailabilityReportViews(fromDate, toDate)
-#         availableRoomsSR = getRoomAvailability(fromDate, toDate, 1, 0, 'Single room')
-#         reservedRoomsSR = getRoomAvailability(fromDate, toDate, 1, 1, 'Single room')
-#         countASR = 0
-#         countRSR = 0
-#         for x in availableRoomsSR:
-#             countASR += 1
-#         for y in reservedRoomsSR:
-#             countRSR += 1
-#
-#         availableRoomsTR = getRoomAvailability(fromDate, toDate, 1, 0, 'Twin room')
-#         reservedRoomsTR = getRoomAvailability(fromDate, toDate, 1, 1, 'Twin room')
-#         countATR = 0
-#         countRTR = 0
-#         for x in availableRoomsTR:
-#             countATR += 1
-#         for y in reservedRoomsTR:
-#             countRTR += 1
-#
-#         availableRoomsDR = getRoomAvailability(fromDate, toDate, 1, 0, 'Double room')
-#         reservedRoomsDR = getRoomAvailability(fromDate, toDate, 1, 1, 'Double room')
-#         countADR = 0
-#         countRDR = 0
-#         for x in availableRoomsDR:
-#             countADR += 1
-#         for y in reservedRoomsDR:
-#             countRDR += 1
-#
-#         availableRoomsTrR = getRoomAvailability(fromDate, toDate, 1, 0, 'Triple room')
-#         reservedRoomsTrR = getRoomAvailability(fromDate, toDate, 1, 1, 'Triple room')
-#         countATrR = 0
-#         countRTrR = 0
-#         for x in availableRoomsTrR:
-#             countATrR += 1
-#         for y in reservedRoomsTrR:
-#             countRTrR += 1
-#
-#         availableRoomsQR = getRoomAvailability(fromDate, toDate, 1, 0, 'Quad room')
-#         reservedRoomsQR = getRoomAvailability(fromDate, toDate, 1, 1, 'Quad room')
-#         countAQR = 0
-#         countRQR = 0
-#         for x in availableRoomsQR:
-#             countAQR += 1
-#         for y in reservedRoomsQR:
-#             countRQR += 1
-#
-#         availableRoomsDDR = getRoomAvailability(fromDate, toDate, 1, 0, 'Double-Double room')
-#         reservedRoomsDDR = getRoomAvailability(fromDate, toDate, 1, 1, 'Double-Double room')
-#         countADDR = 0
-#         countRDDR = 0
-#         for x in availableRoomsDDR:
-#             countADDR += 1
-#         for y in reservedRoomsDDR:
-#             countRDDR += 1
-#
-#         availableRoomsQuR = getRoomAvailability(fromDate, toDate, 1, 0, 'Queen room')
-#         reservedRoomsQuR = getRoomAvailability(fromDate, toDate, 1, 1, 'Queen room')
-#         countAQuR = 0
-#         countRQuR = 0
-#         for x in availableRoomsQuR:
-#             countAQuR += 1
-#         for y in reservedRoomsQuR:
-#             countRQuR += 1
-#
-#         availableRoomsS = getRoomAvailability(fromDate, toDate, 1, 0, 'Suite')
-#         reservedRoomsS = getRoomAvailability(fromDate, toDate, 1, 1, 'Suite')
-#         countAS = 0
-#         countRS = 0
-#         for x in availableRoomsS:
-#             countAS += 1
-#         for y in reservedRoomsS:
-#             countRS += 1
-#
-#         availableRoomsPS = getRoomAvailability(fromDate, toDate, 1, 0, 'Suite')
-#         reservedRoomsPS = getRoomAvailability(fromDate, toDate, 1, 1, 'Suite')
-#         countAPS = 0
-#         countRPS = 0
-#         for x in availableRoomsPS:
-#             countAPS += 1
-#         for y in reservedRoomsPS:
-#             countRPS += 1
-#
-#         availableRoomsSt = getRoomAvailability(fromDate, toDate, 1, 0, 'Studio')
-#         reservedRoomsSt = getRoomAvailability(fromDate, toDate, 1, 1, 'Studio')
-#         countASt = 0
-#         countRSt = 0
-#         for x in availableRoomsSt:
-#             countASt += 1
-#         for y in reservedRoomsSt:
-#             countRSt += 1
-#
-#         availableRoomsCR = getRoomAvailability(fromDate, toDate, 1, 0, 'Connecting rooms')
-#         reservedRoomsCR = getRoomAvailability(fromDate, toDate, 1, 1, 'Connecting rooms')
-#         countACR = 0
-#         countRCR = 0
-#         for x in availableRoomsCR:
-#             countACR += 1
-#         for y in reservedRoomsCR:
-#             countRCR += 1
-#
-#         availableRoomsJS = getRoomAvailability(fromDate, toDate, 1, 0, 'Junior Suite')
-#         reservedRoomsJS = getRoomAvailability(fromDate, toDate, 1, 1, 'Junior Suite')
-#         countAJS = 0
-#         countRJS = 0
-#         for x in availableRoomsJS:
-#             countAJS += 1
-#         for y in reservedRoomsJS:
-#             countRJS += 1
-#
-#         totalAvailable = countASR + countATR + countADR + countATrR + countAQR + countADDR + countAQuR + countAS \
-#                          + countAPS + countASt + countACR + countAJS  # all available roms from any type
-#         totalReserved = countRSR + countRTR + countRDR + countRTrR + countRQR + countRDDR + countRQuR + countRS \
-#                         + countRPS + countRSt + countRCR + countRJS
-#
-#         countData = {'countAvailableSR': countASR,
-#                      'countReservedSR': countRSR,
-#                      'countAvailableTR': countATR,
-#                      'countReservedTR': countRTR,
-#                      'countAvailableDR': countADR,
-#                      'countReservedDR': countRDR,
-#                      'countAvailableTrR': countATrR,
-#                      'countReservedTrR': countRTrR,
-#                      'countAvailableQR': countAQR,
-#                      'countReservedQR': countRQR,
-#                      'countAvailableDDR': countADDR,
-#                      'countReservedDDR': countRDDR,
-#                      'countAvailableQuR': countAQuR,
-#                      'countReservedQuR': countRQuR,
-#                      'countAvailableS': countAS,
-#                      'countReservedS': countRS,
-#                      'countAvailablePS': countAPS,
-#                      'countReservedPS': countRPS,
-#                      'countAvailableSt': countASt,
-#                      'countReservedSt': countRSt,
-#                      'countAvailableCR': countACR,
-#                      'countReservedCR': countRCR,
-#                      'countAvailableJS': countAJS,
-#                      'countReservedJS': countRJS,
-#
-#                      'totalAvailable': totalAvailable,
-#                      'totalReserved': totalReserved,
-#                      'fromDate': fromDate,
-#                      'toDate': toDate,
-#
-#                      }
-#
-#         class RoomAvailabilityReportPDFView(LoginRequiredMixin, PDFView):
-#             template_name = 'roomAvailabilityReport.html'
-#
-#             def get_context_data(self, *args, **kwargs):
-#                 context = super().get_context_data(*args, **kwargs)
-#                 context = countData
-#                 return context
-#
-#             # return render(request, "roomAvailabilityReport.html", context)
-#         # return render(request, 'roomAvailabilityReport.html', countData)
-#     else:
-#         return render(request, "roomAvailabilityForm.html")
+class AllVisitor(LoginRequiredMixin, PDFView):
+    template_name = 'reportbooking\CurrentVisitor.html'
+
+    def get_context_data(self, *args,  **kwargs):
+
+        chechdate = date.today()
+        print(chechdate)
+
+        sql1 = "SELECT booking_Visitor.First_name, booking_Visitor.Last_Name," \
+               "booking_Visitor.nationality,booking_Visitor.Identity_card_type," \
+               "booking_Visitor.Identity_Card_number, DATE(booking_Visitor.birth_date) " \
+               "FROM booking_Visitor "
+
+        print(sql1)
+        context = super().get_context_data(*args, **kwargs)
+        visitor = []
+
+        with connection.cursor() as cursor:
+            cursor.execute(sql1)
+            rows = cursor.fetchall()
+
+        for row in rows:
+            visitor1 = {
+                'First_name': row[0],
+                'Last_Name': row[1],
+                'nationality': row[2],
+                'Identity_card_type': row[3],
+                'Identity_Card_number': row[4],
+                'birth_date': row[5],
+            }
+            visitor.append(visitor1)
+
+        context['visitor'] = visitor
+        return context
+
