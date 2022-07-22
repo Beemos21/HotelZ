@@ -272,8 +272,8 @@ def getRoomAvailability(fromdate, todate, hotelid, availableornot, RoomTypeid):
 
 
 def getRoomTypes():
-    sql = "SELECT roomManager_roomtype.id, roomManager_roomtype.type_name, " \
-          "roomManager_roomtype.area " \
+    sql = "SELECT roomManager_roomtype.id, roomManager_roomtype.type_name, roomManager_roomtype.price_per_day, " \
+          "roomManager_roomtype.area, roomManager_roomtype.bedType, roomManager_roomtype.capacity " \
           "FROM roomManager_roomtype "
 
     print(sql)
@@ -287,7 +287,10 @@ def getRoomTypes():
             type1 = {
                 'roomTypeid': row[0],
                 'type_name': row[1],
-                'area': row[2],
+                'area': row[3],
+                'price_per_day': row[2],
+                'bedType': row[4],
+                'capacity': row[5],
             }
             roomslist.append(type1)
     # print(roomslist)
@@ -301,9 +304,10 @@ def searchForRoomAvailabilityViews(request):
         fromDate = request.GET['from_date']
         toDate = request.GET['to_date']
         hotelid = request.GET['Hotel_id']
-        # roomtype = request.GET['room_type']
+
         roomtypes = getRoomTypes()
         print(roomtypes)
+
         totalAvailable = 0
         totalReserved = 0
         rtypeList = []
@@ -311,6 +315,9 @@ def searchForRoomAvailabilityViews(request):
             tyid = z['roomTypeid']
             roomTname = z['type_name']
             roomTarea = z['area']
+            roomTprice = z['price_per_day']
+            bedType = z['bedType']
+            capacity = z['capacity']
 
             availableRooms = getRoomAvailability(fromDate, toDate, hotelid, 0, tyid)
             reservedRooms = getRoomAvailability(fromDate, toDate, hotelid, 1, tyid)
@@ -328,6 +335,9 @@ def searchForRoomAvailabilityViews(request):
                         'countReserved': countReserved,
                         'roomTname': roomTname,
                         'roomTarea': roomTarea,
+                        'roomTprice': roomTprice,
+                        'bedType': bedType,
+                        'capacity': capacity,
                         }
             rtypeList.append(forcount)
             # return rtypeList

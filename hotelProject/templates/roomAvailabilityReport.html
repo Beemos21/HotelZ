@@ -12,21 +12,29 @@
             <tr style="height:100px">
 
 <!--                <th colspan="1" align= center> <img src="https://drive.google.com/uc?export=view&id=1A4oGJsCQz7FvS2rRjFGjV1kKbYgKgijm" alt="logo" width="50 px" height="50px"></th>-->
-                <th colspan="3" align= center> Hotel Room Availability Report, from {{ fromDate }} to {{ toDate }} </th>
+                <th colspan="3" align= center> <span style="color:YellowGreen;"> Hotel Room Availability Report,
+                    from <span style="color:red;"> {{ fromDate }} </span>
+                    to <span style="color:red;"> {{ toDate }} </span>
+                </th>
 
             </tr>
 
             <tr align= center style="height:50px">
-                <th> Room type </th>
-                <th> Reserved </th>
-                <th> Available </th>
+                <th style="color:darkblue;"> Room type </th>
+                <th style="color:darkblue;"> Reserved </th>
+                <th style="color:darkblue;"> Available </th>
             </tr>
             </thead>
             <tbody>
 
             {% for x in rtypeList %}
             <tr align= center>
-                <td> {{ x.roomTname }} - {{ x.roomTarea }}㎡  </td>
+                <td> <span style="color:red;">  -Type: </span> {{ x.roomTname }}
+                     <span style="color:red;"> |-Bed type: </span>{{ x.bedType }}
+                     <span style="color:red;"> |-Area: </span>{{ x.roomTarea }}
+                     <span style="color:red;"> |-Capacity: </span>{{ x.capacity }}
+                     <span style="color:red;"> |-Price per day: </span>{{ x.roomTprice }}
+                </td>
                 <td> {{ x.countReserved }} </td>
                 <td> {{ x.countAvailable }} </td>
             </tr>
@@ -34,13 +42,13 @@
 
 
             <tr align= center style="height:30px">
-                <td> <b> Total </b> </td>
+                <td style="color:darkblue;"> <b> Total </b> </td>
                 <td> {{ totalReserved }} </td>
                 <td> {{ totalAvailable }} </td>
 
             </tr>
             </tbody>
         </table>
-        <h4>press "Ctrl + P"  to make PDF </h4>
+        <h4 style=" color: grey">press "Ctrl + P"  to make PDF </h4>
     </body>
 </html>
