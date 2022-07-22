@@ -7,17 +7,6 @@
 
     <body style="text-align:center">
 
-<!--    <a id="saveAsPdfBtn" href="https://www.sejda.com/html-to-pdf">Save as PDF</a>-->
-<!--<script>-->
-<!--document.getElementById('saveAsPdfBtn').addEventListener('click', function(e){-->
-<!--  var pageUrl = encodeURIComponent(window.location.href);-->
-<!--  var opts = ['save-link=' + pageUrl, 'pageOrientation=auto'];-->
-<!--  window.open('https://www.sejda.com/html-to-pdf?' + opts.join('&'));-->
-<!--  e.preventDefault();-->
-<!--});-->
-<!--</script>-->
-
-
         <table border="5px solid black" align="center" style="width:80%" cellspacing="4px">
             <thead>
             <tr style="height:100px">
@@ -34,72 +23,15 @@
             </tr>
             </thead>
             <tbody>
-            <tr align= center>
-                <td> Single Room </td>
-                <td> {{ countReservedSR }} </td>
-                <td> {{ countAvailableSR }} </td>
-            </tr>
-            <tr align= center>
-                <td> Twin Room </td>
-                <td> {{ countReservedTR }} </td>
-                <td> {{ countAvailableTR }} </td>
-            </tr>
-            <tr align= center>
-                <td> Double Room </td>
-                <td> {{ countReservedDR }} </td>
-                <td> {{ countAvailableDR }} </td>
-            </tr>
-            <tr align= center>
-                <td> Triple Room </td>
-                <td> {{ countReservedTrR }} </td>
-                <td> {{ countAvailableTrR }} </td>
-            </tr>
-            <tr align= center>
-                <td> Quad Room </td>
-                <td> {{ countReservedQR }} </td>
-                <td> {{ countAvailableQR }} </td>
-            </tr>
-            <tr align= center>
-                <td> Double-Double Room </td>
-                <td> {{ countReservedDDR }} </td>
-                <td> {{ countAvailableDDR }} </td>
-            </tr>
-            <tr align= center>
-                <td> Queen Room </td>
-                <td> {{ countReservedQuR }} </td>
-                <td> {{ countAvailableQuR }} </td>
-            </tr>
-            <tr align= center>
-                <td> King Room </td>
-                <td> {{ countReservedS }} </td>
-                <td> {{ countAvailableS }} </td>
-            </tr>
-            <tr align= center>
-                <td> Presidential Suite </td>
-                <td> {{ countReservedPS }} </td>
-                <td> {{ countAvailablePS }} </td>
-            </tr>
-            <tr align= center>
-                <td> Studio </td>
-                <td> {{ countReservedSt }} </td>
-                <td> {{ countAvailableSt }} </td>
-            </tr>
-            <tr align= center>
-                <td> Connecting Rooms </td>
-                <td> {{ countReservedCR }} </td>
-                <td> {{ countAvailableCR }} </td>
-            </tr>
-            <tr align= center>
-                <td> Junior Suit </td>
-                <td> {{ countReservedJS }} </td>
-                <td> {{ countAvailableJS }} </td>
-            </tr>
 
-<!--            <tr align= center>-->
-<!--                <td> Luxury </td>-->
-<!--                <td> 10 </td>-->
-<!--                <td> 10 </td>-->
-<!--            </tr>-->
+            {% for x in rtypeList %}
+            <tr align= center>
+                <td> {{ x.roomTname }} - {{ x.roomTarea }}㎡  </td>
+                <td> {{ x.countReserved }} </td>
+                <td> {{ x.countAvailable }} </td>
+            </tr>
+            {% endfor %}
+
 
             <tr align= center style="height:30px">
                 <td> <b> Total </b> </td>
@@ -109,6 +41,6 @@
             </tr>
             </tbody>
         </table>
-<h4>press "Ctrl + P"  to make PDF </h4>
+        <h4>press "Ctrl + P"  to make PDF </h4>
     </body>
 </html>

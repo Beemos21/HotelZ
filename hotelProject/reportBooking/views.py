@@ -10,12 +10,6 @@ from django.shortcuts import render
 from faker import Faker, Factory
 import factory
 from django_renderpdf.views import PDFView
-# Create your views here.
-from rest_framework import viewsets
-from .models import *
-from rest_framework.permissions import IsAuthenticated
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
-from rest_framework_simplejwt.authentication import JWTAuthentication
 from templates import *
 from datetime import date, datetime
 from booking.models import RoomBooked, Reservation
@@ -26,6 +20,9 @@ import io
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
 from reportlab.lib.pagesizes import letter
+
+
+# Create your views here.
 
 
 def test_pdf(request):
@@ -61,8 +58,7 @@ def test_pdf(request):
 class TodayCheckin(LoginRequiredMixin, PDFView):
     template_name = 'reportbooking\CheckIn.html'
 
-    def get_context_data(self, *args,  **kwargs):
-
+    def get_context_data(self, *args, **kwargs):
         chechdate = date.today()
         print(chechdate)
         sql1 = "SELECT booking_RoomBooked.nb_Adults, booking_RoomBooked.nb_Children, DATE(booking_Reservation.to_date)," \
@@ -98,8 +94,7 @@ class TodayCheckin(LoginRequiredMixin, PDFView):
 class TodayCheckout(LoginRequiredMixin, PDFView):
     template_name = 'reportbooking\CheckOut.html'
 
-    def get_context_data(self, *args,  **kwargs):
-
+    def get_context_data(self, *args, **kwargs):
         chechdate = date.today()
         print(chechdate)
 
@@ -137,8 +132,7 @@ class TodayCheckout(LoginRequiredMixin, PDFView):
 class CurrentVisitor(LoginRequiredMixin, PDFView):
     template_name = 'reportbooking\CurrentVisitor.html'
 
-    def get_context_data(self, *args,  **kwargs):
-
+    def get_context_data(self, *args, **kwargs):
         chechdate = date.today()
         print(chechdate)
 
@@ -176,8 +170,7 @@ class CurrentVisitor(LoginRequiredMixin, PDFView):
 class AllVisitor(LoginRequiredMixin, PDFView):
     template_name = 'reportbooking\CurrentVisitor.html'
 
-    def get_context_data(self, *args,  **kwargs):
-
+    def get_context_data(self, *args, **kwargs):
         chechdate = date.today()
         print(chechdate)
 
@@ -208,3 +201,153 @@ class AllVisitor(LoginRequiredMixin, PDFView):
         context['visitor'] = visitor
         return context
 
+
+def getWhereAvalabilitydays(fromdate, todate, availableornot):
+    fromdateasdate = datetime.datetime.strptime(fromdate, '%Y-%m-%d')
+    fromdateasint = int(fromdateasdate.strftime('%j'))
+
+    todateasdate = datetime.datetime.strptime(todate, '%Y-%m-%d')
+    todateasint = int(todateasdate.strftime('%j'))
+
+    toreturnstr = ""
+    if todateasint >= fromdateasint:
+        for i in range(fromdateasint, todateasint + 1):
+            toreturnstr = toreturnstr + "roomManager_availability_room.d" + str(i) + "=" + str(availableornot)
+            if i == todateasint:
+                continue
+            toreturnstr = toreturnstr + " and "
+    else:
+        intermediate_str = str(fromdateasdate.year) + str("-12-31")
+        intermediatedate = datetime.strptime(intermediate_str, '%Y-%m-%d')
+
+        intermediateasint = int(intermediatedate.strftime('%j'))
+
+        for i in range(fromdateasint, intermediateasint + 1):
+            toreturnstr = toreturnstr + "roomManager_availability_room.d" + str(i) + "=" + str(availableornot)
+            # if i==intermediateasint :
+            #     continue
+            toreturnstr = toreturnstr + " and "
+
+        # toreturnstr= toreturnstr + " and "
+
+        for i in range(1, todateasint + 1):
+            toreturnstr = toreturnstr + "roomManager_availability_room.d" + str(i) + "=" + availableornot
+            if i == todateasint:
+                continue
+            toreturnstr = toreturnstr + " and "
+    return toreturnstr
+
+
+def getRoomAvailability(fromdate, todate, hotelid, availableornot, RoomTypeid):
+    sql1 = " SELECT roomManager_roomtype.id,roomManager_roomtype.type_name, roomManager_room.id,roomManager_roomtype.area " \
+           " FROM roomManager_room " \
+           " INNER JOIN roomManager_roomtype on roomManager_room.rtype_id = roomManager_roomtype.id" \
+           " INNER JOIN roomManager_availability_room on roomManager_room.id = roomManager_availability_room.room_id "
+
+    sql = str(sql1) + " where " + getWhereAvalabilitydays(fromdate, todate, availableornot)
+
+    if int(hotelid) > 0:
+        sql = str(sql) + " And roomManager_room.hotel_id= " + str(hotelid)
+
+    sql = str(sql) + " And roomManager_RoomType.id= '" + str(RoomTypeid) + "'"
+
+    print(sql)
+    roomslist = []
+
+    with connection.cursor() as cursor:
+        cursor.execute(sql)
+        rows = cursor.fetchall()
+
+        for row in rows:
+            room1 = {
+                'roomTypeid': row[0],
+                'type_name': row[1],
+                'room_id': row[2],
+                'area': row[3],
+                # 'countofroom': row[2],
+            }
+            roomslist.append(room1)
+    # print(roomslist)
+    return roomslist
+
+
+def getRoomTypes():
+    sql = "SELECT roomManager_roomtype.id, roomManager_roomtype.type_name, " \
+          "roomManager_roomtype.area " \
+          "FROM roomManager_roomtype "
+
+    print(sql)
+    roomslist = []
+
+    with connection.cursor() as cursor:
+        cursor.execute(sql)
+        rows = cursor.fetchall()
+
+        for row in rows:
+            type1 = {
+                'roomTypeid': row[0],
+                'type_name': row[1],
+                'area': row[2],
+            }
+            roomslist.append(type1)
+    # print(roomslist)
+    return roomslist
+
+
+def searchForRoomAvailabilityViews(request):
+    if 'FormRoomAvailability' in request.GET:
+        print(request.GET)
+
+        fromDate = request.GET['from_date']
+        toDate = request.GET['to_date']
+        hotelid = request.GET['Hotel_id']
+        # roomtype = request.GET['room_type']
+        roomtypes = getRoomTypes()
+        print(roomtypes)
+        totalAvailable = 0
+        totalReserved = 0
+        rtypeList = []
+        for z in roomtypes:
+            tyid = z['roomTypeid']
+            roomTname = z['type_name']
+            roomTarea = z['area']
+
+            availableRooms = getRoomAvailability(fromDate, toDate, hotelid, 0, tyid)
+            reservedRooms = getRoomAvailability(fromDate, toDate, hotelid, 1, tyid)
+
+            countAvailable = 0
+            countReserved = 0
+
+            for x in availableRooms:
+                countAvailable += 1
+
+            for y in reservedRooms:
+                countReserved += 1
+
+            forcount = {'countAvailable': countAvailable,
+                        'countReserved': countReserved,
+                        'roomTname': roomTname,
+                        'roomTarea': roomTarea,
+                        }
+            rtypeList.append(forcount)
+            # return rtypeList
+
+            totalAvailable += countAvailable  # all available roms from any type
+            totalReserved += countReserved
+
+        countData = {
+            # 'countAvailable': countAvailable,
+            #  'countReserved': countReserved,
+
+            'rtypeList': rtypeList,
+            'totalAvailable': totalAvailable,
+            'totalReserved': totalReserved,
+
+            'roomtypes': roomtypes,
+            'fromDate': fromDate,
+            'toDate': toDate,
+        }
+
+        return render(request, 'roomAvailabilityReport.html', countData)
+    else:
+        return render(request, "roomAvailabilityForm.html")
